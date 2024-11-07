@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拚乓球遊戲</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            height: 100vh;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .board {
+            height: 85vh;
+            width: 80vw;
+            background-color: #212529;
+            border-radius: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ball {
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+            position: absolute;
+            top: calc(50% - 15px);
+            left: calc(50% - 15px);
+            background-color: #fff;
+        }
+        
+        .paddle {
+            height: 100px;
+            width: 18px;
+            background-color: #fff;
+            position: absolute;
+            border-radius: 9px;
+        }
+        
+        .paddle_1 {
+            left: 30px;
+            top: calc(50% - 50px);
+        }
+        
+        .paddle_2 {
+            right: 30px;
+            top: calc(50% - 50px);
+        }
+        
+        .score {
+            color: #fff;
+            font-size: 32px;
+            position: absolute;
+            top: 20px;
+        }
+        
+        .player_1_score {
+            left: 30%;
+        }
+        
+        .player_2_score {
+            right: 30%;
+        }
+        
+        .message {
+            color: #fff;
+            font-size: 24px;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="board">
+            <div class="ball"></div>
+            <div class="paddle paddle_1"></div>
+            <div class="paddle paddle_2"></div>
+            <div class="score player_1_score">0</div>
+            <div class="score player_2_score">0</div>
+            <div class="message">按下Enter開始遊戲</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let gameState = 'start';
+        const ball = document.querySelector('.ball');
+        const paddle1 = document.querySelector('.paddle_1');
+        const paddle2 = document.querySelector('.paddle_2');
+        const score1 = document.querySelector('.player_1_score');
+        const score2 = document.querySelector('.player_2_score');
+        const message = document.querySelector('.message');
+        const board = document.querySelector('.board');
+
+        let ballX = 0;
+        let ballY = 0;
+        let ballSpeedX = 5;
+        let ballSpeedY = 5;
+        let paddle1Y = 250;
+        let paddle2Y = 250;
+        const paddleSpeed = 10;
+
+        function update() {
+            if (gameState === 'play') {
+                // 球的移動
+                ballX += ballSpeedX;
+                ballY += ballSpeedY;
+                ball.style.left = `${ballX}px`;
+                ball.style.top = `${ballY}px`;
+
+                // 碰撞檢測
+                const ballRect = ball.getBoundingClientRect();
+                const paddle1Rect = paddle1.getBoundingClientRect();
+                const paddle2Rect = paddle2.getBoundingClientRect();
+                const boardRect = board.getBoundingClientRect();
+
+                // 上下牆壁碰撞
+                if (ballRect.top <= boardRect.top || ballRect.bottom >= boardRect.bottom) {
+                    ballSpeedY = -ballSpeedY;
+                }
+
+                // 球拍碰撞
+                if (
+                    ballRect.left <= paddle1Rect.right &&
+                    ballRect.top >= paddle1Rect.top &&
+                    ballRect.bottom <= paddle1Rect.bottom
+                ) {
+                    ballSpeedX = -ballSpeedX;
+                }
+
+                if (
+                    ballRect.right >= paddle2Rect.left &&
+                    ballRect.top >= paddle2Rect.top &&
+                    ballRect.bottom <= paddle2Rect.bottom
+                ) {
+                    ballSpeedX = -ballSpeedX;
+                }
+
+                // 得分
+                if (ballRect.left <= boardRect.left) {
+                    score2.textContent = parseInt(score2.textContent) + 1;
+                    resetBall();
+                }
+                if (ballRect.right >= boardRect.right) {
+                    score1.textContent = parseInt(score1.textContent) + 1;
+                    resetBall();
+                }
+
+                requestAnimationFrame(update);
+            }
+        }
+
+        function resetBall() {
+            const boardRect = board.getBoundingClientRect();
+            ballX = boardRect.width / 2;
+            ballY = boardRect.height / 2;
+            ballSpeedX = -ballSpeedX;
+            gameState = 'start';
+            message.textContent = '按下Enter繼續遊戲';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && gameState === 'start') {
+                gameState = 'play';
+                message.textContent = '';
+                update();
+            }
+
+            if (gameState === 'play') {
+                // 玩家1控制 (W/S鍵)
+                if (e.key === 'w') {
+                    paddle1Y = Math.max(0, paddle1Y - paddleSpeed);
+                    paddle1.style.top = `${paddle1Y}px`;
+                }
+                if (e.key === 's') {
+                    paddle1Y = Math.min(board.clientHeight - 100, paddle1Y + paddleSpeed);
+                    paddle1.style.top = `${paddle1Y}px`;
+                }
+
+                // 玩家2控制 (上下方向鍵)
+                if (e.key === 'ArrowUp') {
+                    paddle2Y = Math.max(0, paddle2Y - paddleSpeed);
+                    paddle2.style.top = `${paddle2Y}px`;
+                }
+                if (e.key === 'ArrowDown') {
+                    paddle2Y = Math.min(board.clientHeight - 100, paddle2Y + paddleSpeed);
+                    paddle2.style.top = `${paddle2Y}px`;
+                }
+            }
+        });
+
+        // 初始化球的位置
+        resetBall();
+    </script>
+</body>
+</html>
