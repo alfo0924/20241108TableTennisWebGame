@@ -1,6 +1,8 @@
-# 拚乓球遊戲程
+# 拚乓球遊戲
 
 ## 使用HTML、CSS和JavaScript，並整合Bootstrap框架
+
+<a href="https://alfo0924.github.io/20241108TableTennisWebGame/">拚乓球遊戲網址</a>
 
 這個遊戲包含兩個玩家控制的球拍和一個移動的球。
 
