@@ -82,6 +82,10 @@
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 100;
         }
 
         .mode-select {
@@ -91,11 +95,37 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: #fff;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
         }
 
         .btn {
             margin: 10px;
             min-width: 200px;
+        }
+
+        .game-info {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .winner-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 48px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
         }
     </style>
 </head>
@@ -108,6 +138,8 @@
             <div class="score player_1_score">0</div>
             <div class="score player_2_score">0</div>
             <div class="message"></div>
+            <div class="game-info"></div>
+            <div class="winner-message"></div>
             <div class="mode-select">
                 <h2 class="mb-4">選擇遊戲模式</h2>
                 <button class="btn btn-primary" onclick="selectMode('pvp')">雙人對戰</button><br>
@@ -127,8 +159,11 @@
         const score2 = document.querySelector('.player_2_score');
         const message = document.querySelector('.message');
         const modeSelect = document.querySelector('.mode-select');
+        const gameInfo = document.querySelector('.game-info');
+        const winnerMessage = document.querySelector('.winner-message');
         const board = document.querySelector('.board');
 
+        const WINNING_SCORE = 11; // 獲勝所需分數
         let ballX = 0;
         let ballY = 0;
         let ballSpeedX = 6;
@@ -138,7 +173,6 @@
         const paddleSpeed = 12;
         const computerSpeed = 8;
 
-        // 鍵盤狀態追蹤
         const keys = {
             w: false,
             s: false,
@@ -151,25 +185,39 @@
             modeSelect.style.display = 'none';
             gameState = 'start';
             message.textContent = '按下空白鍵開始遊戲';
+            gameInfo.textContent = `先得到 ${WINNING_SCORE} 分獲勝`;
             resetBall();
+        }
+
+        function checkWinner() {
+            const score1Value = parseInt(score1.textContent);
+            const score2Value = parseInt(score2.textContent);
+            
+            if (score1Value >= WINNING_SCORE || score2Value >= WINNING_SCORE) {
+                if (Math.abs(score1Value - score2Value) >= 2) {
+                    gameState = 'end';
+                    winnerMessage.style.display = 'block';
+                    winnerMessage.innerHTML = `遊戲結束!<br>${score1Value > score2Value ? '玩家1' : (gameMode === 'pvc' ? '電腦' : '玩家2')} 獲勝!<br><br>按R鍵重新開始`;
+                    return true;
+                }
+            }
+            return false;
         }
 
         function update() {
             if (gameState === 'play') {
                 movePaddles();
                 
-                // 球的移動
                 ballX += ballSpeedX;
                 ballY += ballSpeedY;
                 ball.style.left = `${ballX}px`;
                 ball.style.top = `${ballY}px`;
 
-                // AI移動
                 if (gameMode === 'pvc') {
                     const ballCenter = ballY + 10;
                     const paddle2Center = paddle2Y + 50;
                     
-                    if (ballSpeedX > 0) { // 球朝電腦方向移動時
+                    if (ballSpeedX > 0) {
                         if (paddle2Center < ballCenter - 10) {
                             paddle2Y += computerSpeed;
                         } else if (paddle2Center > ballCenter + 10) {
@@ -180,18 +228,15 @@
                     }
                 }
 
-                // 碰撞檢測
                 const ballRect = ball.getBoundingClientRect();
                 const paddle1Rect = paddle1.getBoundingClientRect();
                 const paddle2Rect = paddle2.getBoundingClientRect();
                 const boardRect = board.getBoundingClientRect();
 
-                // 上下牆壁碰撞
                 if (ballRect.top <= boardRect.top || ballRect.bottom >= boardRect.bottom) {
                     ballSpeedY = -ballSpeedY;
                 }
 
-                // 球拍碰撞
                 if (
                     ballRect.left <= paddle1Rect.right &&
                     ballRect.top >= paddle1Rect.top &&
@@ -210,28 +255,37 @@
                     adjustBallAngle(ballRect.top - paddle2Rect.top, paddle2Rect.height);
                 }
 
-                // 得分
                 if (ballRect.left <= boardRect.left) {
                     score2.textContent = parseInt(score2.textContent) + 1;
-                    resetBall();
+                    if (!checkWinner()) {
+                        quickResetBall();
+                    }
                 }
                 if (ballRect.right >= boardRect.right) {
                     score1.textContent = parseInt(score1.textContent) + 1;
-                    resetBall();
+                    if (!checkWinner()) {
+                        quickResetBall();
+                    }
                 }
 
                 requestAnimationFrame(update);
             }
         }
 
+        function quickResetBall() {
+            const boardRect = board.getBoundingClientRect();
+            ballX = boardRect.width / 2;
+            ballY = boardRect.height / 2;
+            ballSpeedX = 6 * (Math.random() > 0.5 ? 1 : -1);
+            ballSpeedY = 6 * (Math.random() > 0.5 ? 1 : -1);
+        }
+
         function adjustBallAngle(hitPosition, paddleHeight) {
-            // 根據擊球位置調整角度
             const relativePosition = hitPosition / paddleHeight;
             ballSpeedY = 12 * (relativePosition - 0.5);
         }
 
         function movePaddles() {
-            // 玩家1移動
             if (keys.w && paddle1Y > 0) {
                 paddle1Y -= paddleSpeed;
             }
@@ -240,7 +294,6 @@
             }
             paddle1.style.top = `${paddle1Y}px`;
 
-            // 玩家2移動（PvP模式）
             if (gameMode === 'pvp') {
                 if (keys.ArrowUp && paddle2Y > 0) {
                     paddle2Y -= paddleSpeed;
@@ -258,8 +311,15 @@
             ballY = boardRect.height / 2;
             ballSpeedX = 6 * (Math.random() > 0.5 ? 1 : -1);
             ballSpeedY = 6 * (Math.random() > 0.5 ? 1 : -1);
+        }
+
+        function resetGame() {
+            score1.textContent = '0';
+            score2.textContent = '0';
             gameState = 'start';
-            message.textContent = '按下空白鍵繼續';
+            winnerMessage.style.display = 'none';
+            message.textContent = '按下空白鍵開始遊戲';
+            resetBall();
         }
 
         document.addEventListener('keydown', (e) => {
@@ -272,6 +332,9 @@
                 message.textContent = '';
                 update();
             }
+            if (e.key.toLowerCase() === 'r' && gameState === 'end') {
+                resetGame();
+            }
         });
 
         document.addEventListener('keyup', (e) => {
@@ -281,7 +344,6 @@
             }
         });
 
-        // 初始化
         resetBall();
     </script>
 </body>
